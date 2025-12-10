@@ -10,10 +10,12 @@ def clean_ingredients(text):
         text = re.sub(r'\s+', ' ', text).strip()
     return text
 
+
 def load_and_clean_data(path):
+    # Load CSV (local or URL)
     df = pd.read_csv(path)
-    df=df.sample(10000,random_state=42)
-    # Parse nutrition list
+
+    # Parse nutrition values
     def parse_nutrition(x):
         try:
             values = ast.literal_eval(x)
@@ -23,28 +25,23 @@ def load_and_clean_data(path):
 
     df['nutrition_parsed'] = df['nutrition'].apply(parse_nutrition)
 
-    df['calories']      = df['nutrition_parsed'].apply(lambda x: x[0])
-    df['total_fat']     = df['nutrition_parsed'].apply(lambda x: x[1])
-    df['sugar']         = df['nutrition_parsed'].apply(lambda x: x[2])
-    df['sodium']        = df['nutrition_parsed'].apply(lambda x: x[3])
-    df['protein']       = df['nutrition_parsed'].apply(lambda x: x[4])
-    df['sat_fat']       = df['nutrition_parsed'].apply(lambda x: x[5])
-    df['carbs']         = df['nutrition_parsed'].apply(lambda x: x[6])
+    df['calories']    = df['nutrition_parsed'].apply(lambda x: x[0])
+    df['total_fat']   = df['nutrition_parsed'].apply(lambda x: x[1])
+    df['sugar']       = df['nutrition_parsed'].apply(lambda x: x[2])
+    df['sodium']      = df['nutrition_parsed'].apply(lambda x: x[3])
+    df['protein']     = df['nutrition_parsed'].apply(lambda x: x[4])
+    df['sat_fat']     = df['nutrition_parsed'].apply(lambda x: x[5])
+    df['carbs']       = df['nutrition_parsed'].apply(lambda x: x[6])
 
-    # Rename name → title if exists
-    if 'name' in df.columns:
-        df.rename(columns={'name': 'title'}, inplace=True)
-
-    # Convert ingredients list string → space-joined string
+    # Convert ingredients list → text
     df['ingredients'] = df['ingredients'].apply(
         lambda x: " ".join(ast.literal_eval(x)) if isinstance(x, str) else ""
     )
 
-    # Clean ingredient text
+    # Clean
     df['cleaned_ingredients'] = df['ingredients'].apply(clean_ingredients)
 
-    # --- FIX FOR STEPS COLUMN ---
-    # Ensure 'steps' exists and convert list string → actual list
+    # Steps list conversion
     if 'steps' in df.columns:
         df['steps'] = df['steps'].apply(
             lambda x: ast.literal_eval(x) if isinstance(x, str) else []
@@ -55,7 +52,3 @@ def load_and_clean_data(path):
     df.dropna(subset=['cleaned_ingredients'], inplace=True)
 
     return df
-
-df=load_and_clean_data("RAW_recipes.csv")
-print(df.columns)
-
