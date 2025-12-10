@@ -1,9 +1,9 @@
 streamlit
 pandas
-scikit-learn
 numpy
+scikit-learn
 requests
-sentence-transformers
+fastembed
 SpeechRecognition
 pydub
 audiorecorder
