@@ -1,9 +1,7 @@
 streamlit
 pandas
-numpy
 scikit-learn
+numpy
 requests
-fastembed
-SpeechRecognition
-pydub
-audiorecorder
+spacy
+spacy-lookups-data
