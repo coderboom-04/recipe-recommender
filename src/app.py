@@ -1,45 +1,42 @@
 import streamlit as st
 import pandas as pd
+import requests
 from preprocess import load_and_clean_data
 from model import RecipeRecommender
 
-# -------------------------------
-# PAGE CONFIG
-# -------------------------------
 st.set_page_config(page_title="Smart Recipe Recommender 🍳", page_icon="🍳")
 
 st.title("🍳 Smart Recipe Recommender")
-st.write("Enter the ingredients you have, and get recipes you can cook!")
+st.write("Enter the ingredients you have, and get recipes instantly!")
 
-# -------------------------------
-# LOAD MODEL + DATA (CACHED)
-# -------------------------------
-@st.cache_resource(hash_funcs={pd.DataFrame: lambda _: None})
+# ---- DOWNLOAD CSV FROM GOOGLE DRIVE ----
+@st.cache_resource
+def download_csv():
+    url = "https://drive.google.com/uc?export=download&id=18l8zaNZKUM2VgKNXfSKLAzh6GPyKGQcz"
+    r = requests.get(url)
+    open("RAW_recipes.csv", "wb").write(r.content)
+    return "RAW_recipes.csv"
+
+# ---- LOAD MODEL ----
+@st.cache_resource
 def load_model():
-    df = load_and_clean_data("https://drive.google.com/uc?export=download&id=18l8zaNZKUM2VgKNXfSKLAzh6GPyKGQcz")
-    model = RecipeRecommender(df)
-    return model
+    csv_path = download_csv()
+    df = load_and_clean_data(csv_path)
+    return RecipeRecommender(df)
 
 model = load_model()
 
-# -------------------------------
-# USER INPUT TEXT BOX
-# -------------------------------
+# ---- USER INPUT ----
 user_ingredients = st.text_input(
     "Enter ingredients (comma separated):",
     placeholder="Example: egg, tomato, onion"
 )
 
-# -------------------------------
-# RUN RECOMMENDER ONLY IF INPUT EXISTS
-# -------------------------------
 if user_ingredients:
     st.subheader("🔍 Recommended Recipes")
 
-    # Get semantic recommendations
     results = model.recommend_semantic(user_ingredients, top_n=5)
 
-    # Time filter
     max_time = st.slider(
         "⏱️ Maximum cooking time (minutes):",
         min_value=1,
@@ -48,18 +45,15 @@ if user_ingredients:
         step=5
     )
 
-    # Filter recipes by time
-    results = results[results['minutes'] <= max_time]
+    results = results[results["minutes"] <= max_time]
 
     if results.empty:
-        st.warning("No recipes fit your time range. Try increasing the cooking time!")
+        st.warning("No recipes found for your time range.")
     else:
         for _, row in results.iterrows():
-            st.markdown(
-                f"### 🍽️ {row['title'].title()} — **{row['semantic_score']:.2f}% Match**"
-            )
+            st.markdown(f"### 🍽️ {row['title'].title()} — **{row['semantic_score']:.2f}% Match**")
 
-            st.markdown("### 🥗 Nutrition Info (per serving):")
+            st.markdown("### 🥗 Nutrition")
             st.write(f"- **Calories:** {row['calories']:.0f} kcal")
             st.write(f"- **Protein:** {row['protein']:.1f} g")
             st.write(f"- **Carbs:** {row['carbs']:.1f} g")
@@ -68,13 +62,12 @@ if user_ingredients:
 
             st.markdown(f"**🧾 Ingredients:** {row['ingredients']}")
 
+            st.markdown("**👩‍🍳 Steps:**")
             steps = row.get("steps", [])
-
-            st.markdown("**👩‍🍳 Steps to Prepare:**")
             if isinstance(steps, list) and steps:
-                for i, step in enumerate(steps, start=1):
+                for i, step in enumerate(steps, 1):
                     st.markdown(f"{i}. {step}")
             else:
-                st.markdown("_No steps available for this recipe._")
+                st.markdown("_No steps available._")
 
             st.markdown("---")
