@@ -60,7 +60,9 @@ if user_ingredients:
         # Display recipes beautifully
         for _, row in results.iterrows():
 
-            st.markdown(f"### 🍳 {row['title'].title()} — **{row['semantic_score']}% Match**")
+            recipe_name = row.get("title") or row.get("name") or "Recipe"
+
+            st.markdown(f"### 🍳 {recipe_name.title()} — **{row['semantic_score']}% Match**")
 
             st.write(f"- **Calories:** {row['calories']} kcal")
             st.write(f"- **Protein:** {row['protein']} g")
@@ -70,7 +72,6 @@ if user_ingredients:
 
             st.markdown(f"**🧾 Ingredients:** {row['ingredients']}")
 
-            # Steps
             steps = row.get("steps", [])
             st.markdown("**👩‍🍳 Steps to Prepare:**")
 
