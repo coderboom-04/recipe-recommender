@@ -13,35 +13,37 @@ def clean_ingredients(text):
 def load_and_clean_data(path):
     df = pd.read_csv(path)
 
-    # ---- INGREDIENTS COLUMN FIX ----
-    if "ingredients" not in df.columns:
-        df["ingredients"] = ""
-
-    def fix_ingredient_list(x):
-        if isinstance(x, str):
+    # ---- INGREDIENTS COLUMN ----
+    if "ingredients" in df.columns:
+        def fix_ingredients(x):
             try:
                 lst = ast.literal_eval(x)
                 if isinstance(lst, list):
                     return " ".join(lst)
             except:
-                pass
-        return ""
+                return ""
+            return ""
 
-    df["ingredients"] = df["ingredients"].apply(fix_ingredient_list)
+        df["ingredients"] = df["ingredients"].apply(fix_ingredients)
+    else:
+        df["ingredients"] = ""
+
     df["cleaned_ingredients"] = df["ingredients"].apply(clean_ingredients)
-
-    # If ANY cleaned ingredient is empty, replace it
     df["cleaned_ingredients"].replace("", "ingredient", inplace=True)
 
-    # ---- STEPS FIX ----
-    if "steps" not in df.columns:
-        df["steps"] = [[] for _ in range(len(df))]
+    # ---- STEPS COLUMN ----
+    if "steps" in df.columns:
+        def fix_steps(x):
+            try:
+                lst = ast.literal_eval(x)
+                return lst if isinstance(lst, list) else []
+            except:
+                return []
+        df["steps"] = df["steps"].apply(fix_steps)
     else:
-        df["steps"] = df["steps"].apply(
-            lambda x: ast.literal_eval(x) if isinstance(x, str) else []
-        )
+        df["steps"] = [[] for _ in range(len(df))]
 
-    # ---- NUTRITION FIX ----
+    # ---- NUTRITION COLUMN ----
     if "nutrition" not in df.columns:
         df["nutrition"] = ["[0,0,0,0,0,0,0]"] * len(df)
 
