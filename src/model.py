@@ -1,0 +1,40 @@
+import spacy
+import numpy as np
+import pandas as pd
+import streamlit as st
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+
+@st.cache_resource
+def load_spacy_model():
+    return spacy.load("en_core_web_md")
+
+@st.cache_resource
+def embed_list(_nlp, cleaned_list):
+    return np.array([_nlp(text).vector for text in cleaned_list])
+
+
+class RecipeRecommender:
+    def __init__(self, dataframe):
+        self.df = dataframe
+        
+        # TF-IDF
+        self.vectorizer = TfidfVectorizer(stop_words='english')
+        self.tfidf_matrix = self.vectorizer.fit_transform(self.df['cleaned_ingredients'])
+
+        # spaCy model
+        self.nlp = load_spacy_model()
+
+        # compute embeddings
+        cleaned_list = self.df['cleaned_ingredients'].tolist()
+        self.recipe_embeddings = embed_list(self.nlp, cleaned_list)
+
+    def recommend_semantic(self, user_input, top_n=5):
+        query_vec = self.nlp(user_input).vector.reshape(1, -1)
+        sims = cosine_similarity(query_vec, self.recipe_embeddings).flatten()
+
+        top_idx = sims.argsort()[-top_n:][::-1]
+
+        results = self.df.iloc[top_idx].copy()
+        results["semantic_score"] = (sims[top_idx] * 100).round(2)
+        return results

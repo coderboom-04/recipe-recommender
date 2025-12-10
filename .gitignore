@@ -1,0 +1,13 @@
+# Large files - DO NOT UPLOAD
+RAW_recipes.csv
+models/
+*.safetensors
+*.bin
+*.pkl
+*.zip
+*.pt
+*.h5
+
+# Python cache
+__pycache__/
+*.pyc
