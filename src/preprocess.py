@@ -3,51 +3,56 @@ import ast
 import re
 
 def clean_ingredients(text):
-    """Clean and normalize ingredient text."""
     if isinstance(text, str):
         text = text.lower()
-        text = re.sub(r'[^a-zA-Z\s]', ' ', text)
+        text = re.sub(r'[^a-z\s]', ' ', text)
         text = re.sub(r'\s+', ' ', text).strip()
-    return text
-
+        return text if text else "ingredient"
+    return "ingredient"
 
 def load_and_clean_data(path):
     df = pd.read_csv(path)
 
-    # ---------- FIX 1: guarantee ingredients column ----------
+    # ---- INGREDIENTS COLUMN FIX ----
     if "ingredients" not in df.columns:
-        df["ingredients"] = ""   # fallback
+        df["ingredients"] = ""
 
-    else:
-        # convert list string → sentence
-        df["ingredients"] = df["ingredients"].apply(
-            lambda x: " ".join(ast.literal_eval(x)) if isinstance(x, str) else ""
-        )
+    def fix_ingredient_list(x):
+        if isinstance(x, str):
+            try:
+                lst = ast.literal_eval(x)
+                if isinstance(lst, list):
+                    return " ".join(lst)
+            except:
+                pass
+        return ""
 
-    # Create cleaned ingredient text
+    df["ingredients"] = df["ingredients"].apply(fix_ingredient_list)
     df["cleaned_ingredients"] = df["ingredients"].apply(clean_ingredients)
 
-    # ---------- FIX 2: ensure cleaned_ingredients is NEVER empty ----------
+    # If ANY cleaned ingredient is empty, replace it
     df["cleaned_ingredients"].replace("", "ingredient", inplace=True)
 
-    # ---------- FIX 3: steps column ----------
-    if "steps" in df.columns:
+    # ---- STEPS FIX ----
+    if "steps" not in df.columns:
+        df["steps"] = [[] for _ in range(len(df))]
+    else:
         df["steps"] = df["steps"].apply(
             lambda x: ast.literal_eval(x) if isinstance(x, str) else []
         )
-    else:
-        df["steps"] = [[] for _ in range(len(df))]
 
-    # ---------- FIX 4: nutrition column ----------
+    # ---- NUTRITION FIX ----
     if "nutrition" not in df.columns:
         df["nutrition"] = ["[0,0,0,0,0,0,0]"] * len(df)
 
     def parse_nutrition(x):
         try:
-            values = ast.literal_eval(x)
-            return values if isinstance(values, list) else [0]*7
+            vals = ast.literal_eval(x)
+            if isinstance(vals, list) and len(vals) >= 7:
+                return vals
         except:
-            return [0]*7
+            pass
+        return [0,0,0,0,0,0,0]
 
     df["nutrition_parsed"] = df["nutrition"].apply(parse_nutrition)
 
