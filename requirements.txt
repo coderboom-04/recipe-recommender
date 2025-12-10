@@ -4,5 +4,4 @@ scikit-learn
 numpy
 SpeechRecognition
 pydub
-audiorecorder
 requests
