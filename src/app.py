@@ -7,7 +7,7 @@ from model import RecipeRecommender
 
 
 # ---------------------------------------------
-# DOWNLOAD CSV FROM GOOGLE DRIVE (SMALL DATASET)
+# DOWNLOAD CSV FROM GOOGLE DRIVE
 # ---------------------------------------------
 @st.cache_data
 def download_csv():
@@ -22,7 +22,7 @@ def download_csv():
 
 
 # ---------------------------------------------
-# LOAD MODEL + DATA (CACHED)
+# LOAD MODEL AND DATA
 # ---------------------------------------------
 @st.cache_resource
 def load_model():
@@ -31,31 +31,28 @@ def load_model():
     return RecipeRecommender(df)
 
 
-# Load model ONCE when app starts
+# Load ONCE
 model = load_model()
 
 
 # ---------------------------------------------
-# STREAMLIT FRONTEND
+# FRONTEND
 # ---------------------------------------------
 st.title("🔍 Smart Recipe Recommender")
 st.write("Enter the ingredients you have, and get recipes instantly!")
 
-# User input
 user_ingredients = st.text_input(
     "Enter ingredients (comma separated):",
     placeholder="Example: egg, tomato, onion"
 )
 
-# Only process if user enters ingredients
 if user_ingredients:
 
     st.subheader("🔍 Recommended Recipes")
 
-    # Get recommendations
     results = model.recommend_semantic(user_ingredients, top_n=5)
 
-    # Cooking time filter
+    # Filter by cooking time
     max_time = st.slider(
         "⏱️ Maximum cooking time (minutes):",
         min_value=1,
@@ -64,24 +61,27 @@ if user_ingredients:
         step=5
     )
 
-    results = results[results["minutes"] <= max_time]
+    if "minutes" in results.columns:
+        results = results[results["minutes"] <= max_time]
 
     if results.empty:
         st.warning("No recipes matched. Try adding more ingredients or increasing time.")
     else:
-        # Display results
         for _, row in results.iterrows():
 
-            st.markdown(f"### 🍽️ {row['title'].title()} — **{row['semantic_score']}% Match**")
+            st.markdown(f"### 🍽️ {row['title'].title()} — **{row.get('semantic_score',0)}% Match**")
 
-            st.write(f"- **Calories:** {row['calories']} kcal")
-            st.write(f"- **Protein:** {row['protein']} g")
-            st.write(f"- **Carbs:** {row['carbs']} g")
-            st.write(f"- **Sugar:** {row['sugar']} g")
-            st.write(f"- **Sodium:** {row['sodium']} mg")
+            # Nutrition
+            st.write(f"- **Calories:** {row.get('calories',0)} kcal")
+            st.write(f"- **Protein:** {row.get('protein',0)} g")
+            st.write(f"- **Carbs:** {row.get('carbs',0)} g")
+            st.write(f"- **Sugar:** {row.get('sugar',0)} g")
+            st.write(f"- **Sodium:** {row.get('sodium',0)} mg")
 
-            st.markdown(f"**🧾 Ingredients:** {row['ingredients']}")
+            # Ingredients
+            st.markdown(f"**🧾 Ingredients:** {row.get('ingredients','N/A')}")
 
+            # Steps
             steps = row.get("steps", [])
             st.markdown("**👩‍🍳 Steps to Prepare:**")
 
