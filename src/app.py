@@ -18,13 +18,23 @@ def download_csv():
     return "RAW_recipes.csv"
 
 # ---- LOAD MODEL ----
-@st.cache_resource
+@st.cache_data
 def load_model():
-    csv_path = download_csv()
-    df = load_and_clean_data(csv_path)
+    # TEMPORARY — ensure Streamlit works
+    import pandas as pd
+    
+    df = pd.DataFrame({
+        "cleaned_ingredients": [
+            "chicken salt pepper",
+            "milk sugar flour",
+            "egg cheese butter"
+        ],
+        "name": ["Chicken Dish", "Cake", "Omelette"]
+    })
+
+    from model import RecipeRecommender
     return RecipeRecommender(df)
 
-model = load_model()
 
 # ---- USER INPUT ----
 user_ingredients = st.text_input(
