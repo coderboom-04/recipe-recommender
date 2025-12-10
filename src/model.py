@@ -1,28 +1,26 @@
 import pandas as pd
 import numpy as np
-from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
-from sentence_transformers import SentenceTransformer
+from fastembed import TextEmbedding
 
 class RecipeRecommender:
     def __init__(self, dataframe):
         self.df = dataframe
 
-        # Load a lightweight cloud-friendly model
-        self.model = SentenceTransformer('all-MiniLM-L6-v2')
+        # Fast lightweight embedding model (cloud friendly)
+        self.embedding_model = TextEmbedding()
 
-        # Create embeddings for ingredients
-        cleaned_list = self.df['cleaned_ingredients'].tolist()
-        self.recipe_embeddings = self.model.encode(cleaned_list, convert_to_numpy=True)
-
-        # TF-IDF optional (not used now)
-        self.vectorizer = TfidfVectorizer(stop_words="english")
-        self.tfidf_matrix = self.vectorizer.fit_transform(self.df["cleaned_ingredients"])
+        cleaned_list = self.df["cleaned_ingredients"].tolist()
+        self.recipe_embeddings = np.array(
+            list(self.embedding_model.embed(cleaned_list))
+        )
 
     def recommend_semantic(self, user_input, top_n=5):
-        query_vec = self.model.encode([user_input], convert_to_numpy=True)
+        user_vec = np.array(
+            list(self.embedding_model.embed([user_input]))
+        ).reshape(1, -1)
 
-        sims = cosine_similarity(query_vec, self.recipe_embeddings).flatten()
+        sims = cosine_similarity(user_vec, self.recipe_embeddings).flatten()
 
         top_idx = sims.argsort()[-top_n:][::-1]
 
