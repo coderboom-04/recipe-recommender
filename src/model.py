@@ -7,8 +7,12 @@ import streamlit as st
 
 @st.cache_resource
 def load_spacy_model():
-    return spacy.load("en_core_web_md")
-
+    try:
+        return spacy.load("en_core_web_sm")
+    except:
+        import spacy.cli
+        spacy.cli.download("en_core_web_sm")
+        return spacy.load("en_core_web_sm")
 @st.cache_resource(hash_funcs={pd.DataFrame: lambda _: None})
 def embed_list(_nlp, text_list):
     return np.array([_nlp(text).vector for text in text_list])
